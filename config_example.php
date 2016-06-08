@@ -69,10 +69,10 @@ return array(
     ),
     'targets' => array(
         'Dengue_Daily_last12m' => array(
-            'resource_id' => '0d1d889f-f664-45a7-a21c-6e7040177bbe',
+            'resource_id' => '',
         ),
         'MosIndex_All_last12m' => array(
-            'resource_id' => 'ac72151b-78cb-4bfd-8a9e-50fc7dcf29dc',
+            'resource_id' => '',
         ),
     ),
 );

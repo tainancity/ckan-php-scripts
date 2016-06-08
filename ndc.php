@@ -6,19 +6,13 @@ $config = require __DIR__ . '/config.php';
 $s = Guzzle\Service\Builder\ServiceBuilder::factory($config['sites'])->get('tainan');
 $t = Guzzle\Service\Builder\ServiceBuilder::factory($config['sites'])->get('ndc');
 
-$datasets = $t->PackageSearch(array('q' => 'owner_org:c7765c06-7637-4a44-9f5b-34e528e009d6'))->getAll();
-while ($datasets['result']['count'] != 0) {
-    foreach ($datasets['result']['results'] AS $dataset) {
-        try {
-            $t->PackageDelete(array('data' => json_encode(array('id' => $dataset['id']))));
-        } catch (Guzzle\Http\Exception\BadResponseException $e) {
-            print_r(json_decode($e->getResponse()->getBody(true)));
-            exit();
-        }
+$datasets = $t->GetDatasets()->getAll();
+$datasetBase = array();
+foreach ($datasets['result'] AS $datasetId) {
+    if (substr($datasetId, 0, 11) === 'tainan-data') {
+        $datasetBase[$datasetId] = true;
     }
-    $datasets = $t->PackageSearch(array('q' => 'owner_org:c7765c06-7637-4a44-9f5b-34e528e009d6'))->getAll();
 }
-
 
 $datasets = $s->GetDatasets()->getAll();
 $base = array(
@@ -74,10 +68,40 @@ foreach ($datasets['result'] AS $datasetId) {
     }
     $pData['tags'] = array(array('name' => '台南市'), array('name' => $jsonDataset['result']['organization']['title']));
     try {
-        $t->PackageCreate(array('data' => json_encode($pData)));
+        if (isset($datasetBase[$pData['name']])) {
+            unset($datasetBase[$pData['name']]);
+            $t->PackageUpdate(array('id' => $pData['name'], 'data' => json_encode($pData)));
+        } else {
+            $t->PackageCreate(array('data' => json_encode($pData)));
+        }
     } catch (Guzzle\Http\Exception\BadResponseException $e) {
         print_r(json_decode($e->getResponse()->getBody(true)));
         exit();
     }
     error_log($pData['title'] . ' done');
+}
+
+if (!empty($datasetBase)) {
+    foreach ($datasetBase AS $datasetId => $v) {
+        $t->PackageDelete(array('data' => json_encode(array('id' => $datasetId))));
+    }
+}
+
+exit();
+
+/*
+ * delete all packages
+ */
+
+$datasets = $t->PackageSearch(array('q' => 'owner_org:c7765c06-7637-4a44-9f5b-34e528e009d6'))->getAll();
+while ($datasets['result']['count'] != 0) {
+    foreach ($datasets['result']['results'] AS $dataset) {
+        try {
+            $t->PackageDelete(array('data' => json_encode(array('id' => $dataset['id']))));
+        } catch (Guzzle\Http\Exception\BadResponseException $e) {
+            print_r(json_decode($e->getResponse()->getBody(true)));
+            exit();
+        }
+    }
+    $datasets = $t->PackageSearch(array('q' => 'owner_org:c7765c06-7637-4a44-9f5b-34e528e009d6'))->getAll();
 }
