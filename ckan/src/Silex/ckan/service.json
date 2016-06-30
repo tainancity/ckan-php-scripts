@@ -48,6 +48,12 @@
                 }
             }
         },
+        "GetUsers": {
+            "httpMethod": "GET",
+            "uri": "3/action/user_list",
+            "summary": "Retrieves users",
+            "responseClass": "GetUsersOutput"
+        },
         "GetDatasetCount": {
             "httpMethod": "GET",
             "uri": "util/dataset-count",
@@ -61,14 +67,19 @@
         },
         "GetGroup": {
             "httpMethod": "GET",
-            "uri": "3/action/organization_show?id={id}",
+            "uri": "3/action/organization_show?id={id}&include_datasets={include_datasets}",
             "summary": "Retrieves a group",
             "responseClass": "GetGroupOutput",
             "parameters": {
                 "id": {
                     "location": "uri",
-                    "description": "The id of the group to retrieve",
+                    "description": "the id or name of the organization",
                     "required": true
+                },
+                "include_datasets": {
+                    "location": "uri",
+                    "description": "include a list of the organization’s datasets (optional, default: True)",
+                    "required": false
                 }
             }
         },
@@ -108,6 +119,24 @@
                     "location": "uri",
                     "description": "Publisher (group) id",
                     "required": true
+                }
+            }
+        },
+        "RolesShow": {
+            "httpMethod": "GET",
+            "uri": "3/action/roles_show?domain_object={domain_object}&user={user}",
+            "summary": "Return the roles of all users and authorization groups for an object.",
+            "responseClass": "CkanApiOutput",
+            "parameters": {
+                "domain_object": {
+                    "location": "uri",
+                    "description": "a package or group name or id to filter the results by",
+                    "required": false
+                },
+                "user": {
+                    "location": "uri",
+                    "description": "a user name or id",
+                    "required": false
                 }
             }
         },
@@ -381,6 +410,23 @@
             }
         },
         "GetDatasetsOutput": {
+            "type": "object",
+            "properties": {
+                "help": {
+                    "location": "json",
+                    "type": "string"
+                },
+                "success": {
+                    "location": "json",
+                    "type": "string"
+                },
+                "result": {
+                    "location": "json",
+                    "type": "object"
+                }
+            }
+        },
+        "GetUsersOutput": {
             "type": "object",
             "properties": {
                 "help": {
