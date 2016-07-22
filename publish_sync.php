@@ -3,7 +3,7 @@
 require __DIR__ . '/ckan/vendor/autoload.php';
 $config = require __DIR__ . '/config.php';
 
-$tmpPath = __DIR__ . '/tmp/publis_sync';
+$tmpPath = __DIR__ . '/tmp/publish_sync';
 if (!file_exists($tmpPath)) {
     mkdir($tmpPath, 0777, true);
 }
@@ -12,7 +12,7 @@ $headers = array();
 $headers[] = 'Content-Type:application/json';
 $headers[] = 'Authorization: ' . $config['ndc']['key'];
 
-$s = Guzzle\Service\Builder\ServiceBuilder::factory($config['sites'])->get('tainan');
+$s = Guzzle\Service\Builder\ServiceBuilder::factory($config['sites'])->get($config['ndc']['site']);
 
 $datasets = $s->GetDatasets()->getAll();
 $timeEnd = strtotime('-7 days');
@@ -54,7 +54,7 @@ foreach ($datasets['result'] AS $datasetId) {
     if (empty($pData['publisherContactPhone'])) {
         $pData['publisherContactPhone'] = $pData['organizationContactPhone'];
     }
-    $pData['landingPage'] = 'http://data.tainan.gov.tw/dataset/' . $jsonDataset['result']['name'];
+    $pData['landingPage'] = $config['ndc']['ckan_uri'] . '/dataset/' . $jsonDataset['result']['name'];
     $pData['numberOfData'] = isset($options['資料量']) ? intval($options['資料量']) : '';
     $pData['keyword'][] = $jsonDataset['result']['organization']['title'];
     foreach ($jsonDataset['result']['tags'] AS $tag) {
@@ -70,7 +70,7 @@ foreach ($datasets['result'] AS $datasetId) {
             'resourceDescription' => empty($resource['description']) ? $resource['format'] : $resource['description'],
             'resourceModified' => empty($resource['last_modified']) ? $resource['created'] : $resource['last_modified'],
             'format' => $resource['format'],
-            'accessURL' => 'http://data.tainan.gov.tw/dataset/' . $jsonDataset['result']['name'] . '/resource/' . $resource['id'],
+            'accessURL' => $config['ndc']['ckan_uri'] . '/dataset/' . $jsonDataset['result']['name'] . '/resource/' . $resource['id'],
             'characterSetCode' => 'UTF-8'
         );
     }

@@ -76,6 +76,8 @@ return array(
         ),
     ),
     'ndc' => array(
+        'site' => 'tainan',
+        'ckan_uri' => 'http://data.tainan.gov.tw',
         'sru' => 'http://data.nat.gov.tw/api/v1/rest',
         'key' => '',
         'base' => array(
