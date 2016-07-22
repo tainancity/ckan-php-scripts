@@ -15,9 +15,16 @@ $headers[] = 'Authorization: ' . $config['ndc']['key'];
 $s = Guzzle\Service\Builder\ServiceBuilder::factory($config['sites'])->get('tainan');
 
 $datasets = $s->GetDatasets()->getAll();
+$timeEnd = strtotime('-7 days');
+if (isset($_SERVER['argv'][1]) && $_SERVER['argv'][1] === 'all') {
+    $timeEnd = 0;
+}
 
 foreach ($datasets['result'] AS $datasetId) {
     $jsonDataset = $s->GetDataset(array('id' => $datasetId))->getAll();
+    if (strtotime($jsonDataset['result']['metadata_modified']) < $timeEnd) {
+        continue;
+    }
     $pData = $config['ndc']['base'];
     $options = array();
     foreach ($jsonDataset['result']['extras'] AS $extra) {
@@ -27,6 +34,9 @@ foreach ($datasets['result'] AS $datasetId) {
     $pData['title'] = $jsonDataset['result']['title'];
     $pData['description'] = $jsonDataset['result']['notes'];
     $pData['fieldDescription'] = isset($jsonDataset['result']['resources'][0]['description']) ? $jsonDataset['result']['resources'][0]['description'] : '';
+    if (empty($pData['fieldDescription'])) {
+        $pData['fieldDescription'] = $jsonDataset['result']['resources'][0]['format'];
+    }
     $pData['issued'] = $jsonDataset['result']['metadata_created'];
     $pData['temporalCoverageFrom'] = isset($options['收錄期間（起）']) ? $options['收錄期間（起）'] : '';
     $pData['temporalCoverageTo'] = isset($options['收錄期間（迄）']) ? $options['收錄期間（迄）'] : '';
@@ -36,11 +46,14 @@ foreach ($datasets['result'] AS $datasetId) {
     if (empty($pData['temporalCoverageTo'])) {
         unset($pData['temporalCoverageTo']);
     }
-    $pData['accrualPeriodicity'] = isset($options['更新頻率']) ? $options['更新頻率'] : '';
+    $pData['accrualPeriodicity'] = !empty($options['更新頻率']) ? $options['更新頻率'] : '不定期';
     $pData['modified'] = $jsonDataset['result']['metadata_modified'];
     $pData['publisher'] .= $jsonDataset['result']['organization']['title'];
     $pData['publisherContactName'] = !empty($jsonDataset['result']['maintainer']) ? $jsonDataset['result']['maintainer'] : $jsonDataset['result']['organization']['title'];
     $pData['publisherContactPhone'] = isset($options['提供機關聯絡人電話']) ? $options['提供機關聯絡人電話'] : '';
+    if (empty($pData['publisherContactPhone'])) {
+        $pData['publisherContactPhone'] = $pData['organizationContactPhone'];
+    }
     $pData['landingPage'] = 'http://data.tainan.gov.tw/dataset/' . $jsonDataset['result']['name'];
     $pData['numberOfData'] = isset($options['資料量']) ? intval($options['資料量']) : '';
     $pData['keyword'][] = $jsonDataset['result']['organization']['title'];
@@ -49,10 +62,13 @@ foreach ($datasets['result'] AS $datasetId) {
     }
 
     foreach ($jsonDataset['result']['resources'] AS $resource) {
+        if (empty($resource['format'])) {
+            continue;
+        }
         $pData['distribution'][] = array(
             'resourceID' => $resource['id'],
-            'resourceDescription' => $resource['description'],
-            'resourceModified' => $resource['last_modified'],
+            'resourceDescription' => empty($resource['description']) ? $resource['format'] : $resource['description'],
+            'resourceModified' => empty($resource['last_modified']) ? $resource['created'] : $resource['last_modified'],
             'format' => $resource['format'],
             'accessURL' => 'http://data.tainan.gov.tw/dataset/' . $jsonDataset['result']['name'] . '/resource/' . $resource['id'],
             'characterSetCode' => 'UTF-8'
