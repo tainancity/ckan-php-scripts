@@ -19,8 +19,17 @@ $timeEnd = strtotime('-7 days');
 if (isset($_SERVER['argv'][1]) && $_SERVER['argv'][1] === 'all') {
     $timeEnd = 0;
 }
+$datasetList = $newDatasetList = array();
+if (file_exists($tmpPath . '/datasets_list')) {
+    $datasetList = explode('///', file_get_contents($tmpPath . '/datasets_list'));
+    $datasetList = array_combine($datasetList, $datasetList);
+}
 
 foreach ($datasets['result'] AS $datasetId) {
+    $newDatasetList[] = $datasetId;
+    if (isset($datasetList[$datasetId])) {
+        unset($datasetList[$datasetId]);
+    }
     $jsonDataset = $s->GetDataset(array('id' => $datasetId))->getAll();
     if (strtotime($jsonDataset['result']['metadata_modified']) < $timeEnd) {
         continue;
@@ -106,14 +115,18 @@ foreach ($datasets['result'] AS $datasetId) {
                     ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
-exit();
-
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $config['ndc']['sru'] . '/dataset/tainan-' . $datasetId);
-curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-echo curl_exec($ch);
-curl_close($ch);
-exit();
-
+file_put_contents($tmpPath . '/datasets_list', implode('///', $newDatasetList));
+if (!empty($datasetList)) {
+    foreach ($datasetList AS $datasetId => $s) {
+        error_log("deleting {$datasetId}");
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $config['ndc']['sru'] . '/dataset/' . $datasetId);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $server_output = curl_exec($ch);
+        curl_close($ch);
+        $json = json_decode(substr($server_output, strpos($server_output, '{')), true);
+        print_r($json);
+    }
+}
